@@ -1,21 +1,15 @@
-export interface Config {
+// Configuration settings for the application
+
+type Config = {
     apiUrl: string;
     timeout: number;
-    retries: number;
-}
+    maxRetries: number;
+};
 
 const config: Config = {
-    apiUrl: 'https://api.example.com',
+    apiUrl: 'https://api.crypto.com',
     timeout: 5000,
-    retries: 3,
+    maxRetries: 3,
 };
 
 export default config;
-
-export const getConfig = (): Config => {
-    return config;
-};
-
-export const setConfig = (newConfig: Partial<Config>): void => {
-    Object.assign(config, newConfig);
-};
