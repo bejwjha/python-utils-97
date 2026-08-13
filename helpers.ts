@@ -1,37 +1,28 @@
-import { HttpException, HttpStatus } from 'your-http-library';
+import { BigNumber } from 'bignumber.js';
 
-export function safelyExecute<T>(fn: () => T): T | null {
+export function formatCurrency(amount: string | number, decimals: number = 2): string {
+    return new BigNumber(amount).toFormat(decimals);
+}
+
+export function calculatePercentage(part: number, total: number): number {
+    if (total === 0) return 0;
+    return (part / total) * 100;
+}
+
+export function isValidAddress(address: string): boolean {
+    const regExp = /^0x[a-fA-F0-9]{40}$/;
+    return regExp.test(address);
+}
+
+export function roundToDecimals(value: number, decimals: number): number {
+    const factor = Math.pow(10, decimals);
+    return Math.round(value * factor) / factor;
+}
+
+export function safeParseJSON(jsonString: string): any {
     try {
-        return fn();
-    } catch (error) {
-        console.error('Error executing function:', error);
+        return JSON.parse(jsonString);
+    } catch {
         return null;
     }
-}
-
-export function validateInput(data: any, schema: any): boolean {
-    const validationResult = schema.validate(data);
-    if (validationResult.error) {
-        console.error('Validation error:', validationResult.error.details);
-        return false;
-    }
-    return true;
-}
-
-export function handleUnexpectedError(error: any): HttpException {
-    console.error('Unexpected error occurred:', error);
-    return new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
-}
-
-export function retry<T>(fn: () => T, attempts: number = 3): T | null {
-    let lastError: any;
-    for (let i = 0; i < attempts; i++) {
-        try {
-            return fn();
-        } catch (error) {
-            lastError = error;
-        }
-    }
-    console.error('Max attempts reached with error:', lastError);
-    return null;
 }
