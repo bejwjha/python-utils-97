@@ -1,36 +1,21 @@
-import axios from 'axios';
+import { createLogger, format, transports } from 'winston';
 
-const API_URL = 'https://api.crypto.com/v1';
+const { combine, timestamp, printf } = format;
 
-interface CryptoData {
-    id: string;
-    name: string;
-    price: number;
-}
+const customFormat = printf(({ level, message, timestamp }) => {
+    return `${timestamp} ${level}: ${message}`;
+});
 
-async function fetchCryptoData(coinId: string): Promise<CryptoData | null> {
-    try {
-        const response = await axios.get(`${API_URL}/coins/${coinId}`);
-        if (response.status === 200) {
-            return response.data;
-        }
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            console.error('Axios error:', error.message);
-        } else {
-            console.error('Unexpected error:', error);
-        }
-    }
-    return null;
-}
+const logger = createLogger({
+    level: 'info',
+    format: combine(
+        timestamp(),
+        customFormat
+    ),
+    transports: [
+        new transports.Console(),
+        new transports.File({ filename: 'combined.log', maxSize: '20m', maxFiles: '14d' }),
+    ],
+});
 
-async function displayCryptoPrice(coinId: string): Promise<void> {
-    const data = await fetchCryptoData(coinId);
-    if (data) {
-        console.log(`The price of ${data.name} is $${data.price}.`);
-    } else {
-        console.error('Failed to fetch crypto data.');
-    }
-}
-
-displayCryptoPrice('bitcoin');
+export default logger;
