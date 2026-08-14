@@ -1,21 +1,31 @@
-import { createLogger, format, transports } from 'winston';
+import axios from 'axios';
 
-const { combine, timestamp, printf } = format;
+export class CryptoService {
+    private apiUrl: string;
 
-const customFormat = printf(({ level, message, timestamp }) => {
-    return `${timestamp} ${level}: ${message}`;
-});
+    constructor() {
+        this.apiUrl = 'https://api.coingecko.com/api/v3';
+    }
 
-const logger = createLogger({
-    level: 'info',
-    format: combine(
-        timestamp(),
-        customFormat
-    ),
-    transports: [
-        new transports.Console(),
-        new transports.File({ filename: 'combined.log', maxSize: '20m', maxFiles: '14d' }),
-    ],
-});
+    public async getCoinMarketData(coinId: string): Promise<any> {
+        try {
+            const response = await axios.get(`${this.apiUrl}/coins/${coinId}/market_chart`, {
+                params: { vs_currency: 'usd', days: '1' }
+            });
+            return response.data;
+        } catch (error) {
+            throw new Error('Error fetching market data');
+        }
+    }
 
-export default logger;
+    public async getPriceHistory(coinId: string, days: number): Promise<any> {
+        try {
+            const response = await axios.get(`${this.apiUrl}/coins/${coinId}/market_chart`, {
+                params: { vs_currency: 'usd', days } 
+            });
+            return response.data;
+        } catch (error) {
+            throw new Error('Error fetching price history');
+        }
+    }
+}
