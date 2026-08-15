@@ -1,31 +1,33 @@
 import axios from 'axios';
 
-export class CryptoService {
-    private apiUrl: string;
+interface CryptoPrice {
+    symbol: string;
+    price: number;
+}
 
-    constructor() {
-        this.apiUrl = 'https://api.coingecko.com/api/v3';
+class CryptoService {
+    private apiBase: string;
+
+    constructor(apiBase: string) {
+        this.apiBase = apiBase;
     }
 
-    public async getCoinMarketData(coinId: string): Promise<any> {
+    async getPrice(symbol: string): Promise<CryptoPrice | null> {
         try {
-            const response = await axios.get(`${this.apiUrl}/coins/${coinId}/market_chart`, {
-                params: { vs_currency: 'usd', days: '1' }
-            });
-            return response.data;
+            const response = await axios.get(`${this.apiBase}/price?symbol=${symbol}`);
+            return { symbol, price: response.data.price };
         } catch (error) {
-            throw new Error('Error fetching market data');
+            console.error('Error fetching price:', error);
+            return null;
         }
     }
 
-    public async getPriceHistory(coinId: string, days: number): Promise<any> {
-        try {
-            const response = await axios.get(`${this.apiUrl}/coins/${coinId}/market_chart`, {
-                params: { vs_currency: 'usd', days } 
-            });
-            return response.data;
-        } catch (error) {
-            throw new Error('Error fetching price history');
-        }
+    async getPrices(symbols: string[]): Promise<CryptoPrice[]> {
+        const pricePromises = symbols.map(symbol => this.getPrice(symbol));
+        return Promise.all(pricePromises);
     }
 }
+
+const cryptoService = new CryptoService('https://api.crypto.com');
+
+export default cryptoService;
