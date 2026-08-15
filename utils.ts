@@ -1,31 +1,27 @@
-import axios from 'axios';
+import { isString, isNumber } from 'lodash';
 
-export interface CryptoData {
-  symbol: string;
-  price: number;
-  volume: number;
-  marketCap: number;
-  percentChange24h: number;
+export function validateInput(input: any): boolean {
+    if (!isString(input.address) || !/^(0x)?[0-9a-fA-F]{40}$/.test(input.address)) {
+        throw new Error('Invalid address format');
+    }
+    if (!isNumber(input.amount) || input.amount <= 0) {
+        throw new Error('Amount must be a positive number');
+    }
+    return true;
 }
 
-export async function fetchCryptoData(symbol: string): Promise<CryptoData | null> {
-  try {
-    const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`);
-    const data = response.data[symbol];
-    if (!data) return null;
-    return {
-      symbol,
-      price: data.usd,
-      volume: data.usd_24h_vol,
-      marketCap: data.usd_market_cap,
-      percentChange24h: data.usd_24h_change,
-    };
-  } catch (error) {
-    console.error('Error fetching crypto data:', error);
-    return null;
-  }
+export function processTransaction(input: { address: string; amount: number }): string {
+    validateInput(input);
+    // Processing logic here
+    return 'Transaction processed successfully';
 }
 
-export function formatCryptoData(data: CryptoData): string {
-  return `Symbol: ${data.symbol}, Price: $${data.price.toFixed(2)}, Volume: $${data.volume.toFixed(2)}, Market Cap: $${data.marketCap.toFixed(2)}, Change (24h): ${data.percentChange24h.toFixed(2)}%`;
+export function mainLoop(transactions: Array<{ address: string; amount: number }>): void {
+    transactions.forEach(transaction => {
+        try {
+            console.log(processTransaction(transaction));
+        } catch (error) {
+            console.error(error.message);
+        }
+    });
 }
