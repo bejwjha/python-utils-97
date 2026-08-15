@@ -1,27 +1,28 @@
-import { readFileSync, writeFileSync } from 'fs';
-import * as dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
-dotenv.config();
-
-type Config = { apiKey: string; network: string; timeout: number; };
+interface Config {
+    apiKey: string;
+    apiSecret: string;
+    timeout: number;
+}
 
 const defaultConfig: Config = {
-    apiKey: process.env.API_KEY || '',
-    network: process.env.NETWORK || 'mainnet',
-    timeout: Number(process.env.TIMEOUT) || 5000,
+    apiKey: 'default-key',
+    apiSecret: 'default-secret',
+    timeout: 5000,
 };
 
-function validateConfig(config: Config) {
-    if (!config.apiKey) throw new Error('API key is required');
-    if (!['mainnet', 'testnet'].includes(config.network)) throw new Error('Invalid network option');
-    if (isNaN(config.timeout) || config.timeout <= 0) throw new Error('Invalid timeout value');
-}
+const loadConfig = (configPath: string): Config => {
+    try {
+        const fullPath = path.resolve(configPath);
+        const fileContent = fs.readFileSync(fullPath, 'utf-8');
+        const userConfig = JSON.parse(fileContent) as Partial<Config>;
+        return { ...defaultConfig, ...userConfig };
+    } catch (error) {
+        console.error('Error loading config:', error);
+        return defaultConfig;
+    }
+};
 
-try {
-    validateConfig(defaultConfig);
-} catch (error) {
-    console.error('Configuration validation error:', error.message);
-    process.exit(1);
-}
-
-export default defaultConfig;
+export default loadConfig;
