@@ -1,26 +1,31 @@
-import * as crypto from 'crypto';
+import { Currency, ExchangeRate } from './types';
 
-export function validateInput(data: any): boolean {
-    if (typeof data !== 'object' || data === null) return false;
-    const { amount, recipient } = data;
-    return typeof amount === 'number' && typeof recipient === 'string';
-}
+export class CurrencyConverter {
+    private rates: Record<string, ExchangeRate>;
 
-export function processTransaction(data: any): string | null {
-    if (!validateInput(data)) return null;
-    const { amount, recipient } = data;
-    const transactionId = crypto.randomBytes(16).toString('hex');
-    console.log(`Processing transaction ${transactionId} for ${amount} to ${recipient}`);
-    return transactionId;
-}
+    constructor(rates: Record<string, ExchangeRate>) {
+        this.rates = rates;
+    }
 
-export function mainLoop(transactions: any[]): void {
-    transactions.forEach(transaction => {
-        const result = processTransaction(transaction);
-        if (result === null) {
-            console.error('Invalid transaction input:', transaction);
-        } else {
-            console.log('Transaction processed:', result);
+    convert(amount: number, from: Currency, to: Currency): number | null {
+        if (amount <= 0) {
+            throw new Error('Amount must be greater than zero.');
         }
-    });
+        if (!this.rates[from] || !this.rates[to]) {
+            throw new Error('Invalid currency provided.');
+        }
+        const rate = this.rates[from][to];
+        if (!rate) {
+            throw new Error(`Exchange rate not available for ${from} to ${to}.`);
+        }
+        return amount * rate;
+    }
 }
+
+export const validateCurrency = (currency: Currency): boolean => {
+    const validCurrencies = Object.keys(this.rates);
+    if (!validCurrencies.includes(currency)) {
+        throw new Error('Unsupported currency.');
+    }
+    return true;
+};
