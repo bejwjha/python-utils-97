@@ -1,27 +1,24 @@
-import { Cryptocurrency, ApiError } from './types';
+import { createHmac } from 'crypto';
 
-export async function fetchCryptoData(cryptoId: string): Promise<Cryptocurrency> {
-    try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/${cryptoId}`);
-        if (!response.ok) {
-            throw new ApiError(`Error fetching data: ${response.status}`, response.status);
-        }
-        const data: Cryptocurrency = await response.json();
-        return data;
-    } catch (error) {
-        if (error instanceof ApiError) {
-            console.error('API Error:', error.message);
-        } else {
-            console.error('Unexpected Error:', error);
-        }
-        throw error;
-    }
+export function generateHmac(secret: string, data: string, algorithm: string = 'sha256'): string {
+    const hmac = createHmac(algorithm, secret);
+    hmac.update(data);
+    return hmac.digest('hex');
 }
 
-export function validateAddress(address: string): boolean {
-    const isValid = /^0x[a-fA-F0-9]{40}$/.test(address);
-    if (!isValid) {
-        console.error('Invalid address format');
+export function isValidSignature(secret: string, data: string, signature: string, algorithm: string = 'sha256'): boolean {
+    const expectedSignature = generateHmac(secret, data, algorithm);
+    return expectedSignature === signature;
+}
+
+export function formatCryptoData(data: any): string {
+    return JSON.stringify(data, null, 2);
+}
+
+export function parseCryptoData(data: string): any {
+    try {
+        return JSON.parse(data);
+    } catch (error) {
+        throw new Error('Invalid JSON format');
     }
-    return isValid;
 }
