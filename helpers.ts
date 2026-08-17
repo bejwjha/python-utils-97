@@ -1,24 +1,23 @@
-import { createHmac } from 'crypto';
+import { BigNumber } from 'bignumber.js';
 
-export function generateHmac(secret: string, data: string, algorithm: string = 'sha256'): string {
-    const hmac = createHmac(algorithm, secret);
-    hmac.update(data);
-    return hmac.digest('hex');
+export function calculateProfit(cost: number, sellPrice: number, quantity: number): number {
+    const totalCost = BigNumber(cost).multipliedBy(quantity);
+    const totalSellPrice = BigNumber(sellPrice).multipliedBy(quantity);
+    return totalSellPrice.minus(totalCost).toNumber();
 }
 
-export function isValidSignature(secret: string, data: string, signature: string, algorithm: string = 'sha256'): boolean {
-    const expectedSignature = generateHmac(secret, data, algorithm);
-    return expectedSignature === signature;
+export function convertToUSD(amount: number, exchangeRate: number): number {
+    return BigNumber(amount).multipliedBy(exchangeRate).toNumber();
 }
 
-export function formatCryptoData(data: any): string {
-    return JSON.stringify(data, null, 2);
+export function roundValue(value: number, decimals: number): number {
+    return Number(BigNumber(value).decimalPlaces(decimals).toString());
 }
 
-export function parseCryptoData(data: string): any {
-    try {
-        return JSON.parse(data);
-    } catch (error) {
-        throw new Error('Invalid JSON format');
-    }
+export function filterActiveTradePairs(tradePairs: string[], activePairs: string[]): string[] {
+    return tradePairs.filter(pair => activePairs.includes(pair));
+}
+
+export function calculateRisk(profit: number, drawdown: number): string {
+    return drawdown > 0 ? (profit / drawdown).toFixed(2) : 'Infinity';
 }
