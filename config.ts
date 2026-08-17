@@ -1,25 +1,27 @@
-import { Config } from './types';
+import { createLogger, format, transports } from 'winston';
 
-export const defaultConfig: Config = {
-    apiUrl: 'https://api.example.com',
-    timeout: 5000,
-    retryAttempts: 3,
-};
+const logFormat = format.combine(
+  format.timestamp(),
+  format.printf(({ timestamp, message }) => `${timestamp}: ${message}`)
+);
 
-export const validateConfig = (config: Partial<Config>): void => {
-    if (typeof config.apiUrl !== 'string' || config.apiUrl.trim() === '') {
-        throw new Error('Invalid API URL.');
-    }
-    if (typeof config.timeout !== 'number' || config.timeout <= 0) {
-        throw new Error('Timeout must be a positive number.');
-    }
-    if (typeof config.retryAttempts !== 'number' || config.retryAttempts < 0) {
-        throw new Error('Retry attempts must be a non-negative number.');
-    }
-};
+const logger = createLogger({
+  level: 'info',
+  format: logFormat,
+  transports: [
+    new transports.File({ filename: 'error.log', level: 'error', maxsize: 1000000,}) ,
+    new transports.File({ filename: 'combined.log', maxsize: 1000000,}) ,
+    new transports.Console(),
+  ],
+});
 
-export const getConfig = (customConfig: Partial<Config>): Config => {
-    const config = { ...defaultConfig, ...customConfig };
-    validateConfig(config);
-    return config;
-};
+export default logger;
+
+process.on('uncaughtException', (err) => {
+  logger.error(`Uncaught Exception: ${err.message}`);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error(`Unhandled Rejection: ${reason}`);
+});
