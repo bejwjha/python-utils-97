@@ -1,33 +1,18 @@
-import axios from 'axios';
+import { isValidAddress } from './utils';
+import { fetchCryptoData } from './api';
 
-interface CryptoPrice {
-    symbol: string;
-    price: number;
+interface CryptoRequest {
+    address: string;
+    currency: string;
 }
 
-class CryptoService {
-    private apiBase: string;
-
-    constructor(apiBase: string) {
-        this.apiBase = apiBase;
-    }
-
-    async getPrice(symbol: string): Promise<CryptoPrice | null> {
-        try {
-            const response = await axios.get(`${this.apiBase}/price?symbol=${symbol}`);
-            return { symbol, price: response.data.price };
-        } catch (error) {
-            console.error('Error fetching price:', error);
-            return null;
+export async function processCryptoRequests(requests: CryptoRequest[]): Promise<void> {
+    for (const request of requests) {
+        if (!isValidAddress(request.address)) {
+            console.error(`Invalid address: ${request.address}`);
+            continue;
         }
-    }
-
-    async getPrices(symbols: string[]): Promise<CryptoPrice[]> {
-        const pricePromises = symbols.map(symbol => this.getPrice(symbol));
-        return Promise.all(pricePromises);
+        const data = await fetchCryptoData(request.address, request.currency);
+        console.log(data);
     }
 }
-
-const cryptoService = new CryptoService('https://api.crypto.com');
-
-export default cryptoService;
