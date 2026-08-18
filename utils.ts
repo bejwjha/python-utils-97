@@ -1,31 +1,34 @@
-import { Currency, ExchangeRate } from './types';
+import { createLogger, format, transports } from 'winston';
+import { DateTime } from 'luxon';
 
-export class CurrencyConverter {
-    private rates: Record<string, ExchangeRate>;
+const logFormat = format.printf(({ level, message, timestamp }) => {
+    return `${timestamp} [${level}]: ${message}`;
+});
 
-    constructor(rates: Record<string, ExchangeRate>) {
-        this.rates = rates;
-    }
+const logger = createLogger({
+    level: 'info',
+    format: format.combine(
+        format.timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }),
+        logFormat
+    ),
+    transports: [
+        new transports.File({
+            filename: 'error.log',
+            level: 'error',
+            maxsize: 5242880,
+            maxFiles: '5d',
+            tailable: true,
+        }),
+        new transports.File({
+            filename: 'combined.log',
+            maxsize: 5242880,
+            maxFiles: '5d',
+            tailable: true,
+        }),
+        new transports.Console()
+    ]
+});
 
-    convert(amount: number, from: Currency, to: Currency): number | null {
-        if (amount <= 0) {
-            throw new Error('Amount must be greater than zero.');
-        }
-        if (!this.rates[from] || !this.rates[to]) {
-            throw new Error('Invalid currency provided.');
-        }
-        const rate = this.rates[from][to];
-        if (!rate) {
-            throw new Error(`Exchange rate not available for ${from} to ${to}.`);
-        }
-        return amount * rate;
-    }
-}
-
-export const validateCurrency = (currency: Currency): boolean => {
-    const validCurrencies = Object.keys(this.rates);
-    if (!validCurrencies.includes(currency)) {
-        throw new Error('Unsupported currency.');
-    }
-    return true;
-};
+export default logger;
