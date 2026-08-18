@@ -1,27 +1,25 @@
-import { createLogger, format, transports } from 'winston';
+import fs from 'fs';
+import path from 'path';
 
-const logFormat = format.combine(
-  format.timestamp(),
-  format.printf(({ timestamp, message }) => `${timestamp}: ${message}`)
-);
+interface ConfigOptions {
+  apiKey: string;
+  dbUri: string;
+  port: number;
+}
 
-const logger = createLogger({
-  level: 'info',
-  format: logFormat,
-  transports: [
-    new transports.File({ filename: 'error.log', level: 'error', maxsize: 1000000,}) ,
-    new transports.File({ filename: 'combined.log', maxsize: 1000000,}) ,
-    new transports.Console(),
-  ],
-});
+const defaultConfig: ConfigOptions = {
+  apiKey: 'defaultApiKey',
+  dbUri: 'mongodb://localhost:27017/default',
+  port: 3000,
+};
 
-export default logger;
+function loadConfig(filePath: string): ConfigOptions {
+  const fullPath = path.resolve(__dirname, filePath);
+  if (fs.existsSync(fullPath)) {
+    const fileConfig = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+    return { ...defaultConfig, ...fileConfig };
+  }
+  return defaultConfig;
+}
 
-process.on('uncaughtException', (err) => {
-  logger.error(`Uncaught Exception: ${err.message}`);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason) => {
-  logger.error(`Unhandled Rejection: ${reason}`);
-});
+export { loadConfig, ConfigOptions };
