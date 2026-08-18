@@ -1,25 +1,25 @@
-import fs from 'fs';
-import path from 'path';
-
-interface ConfigOptions {
-  apiKey: string;
-  dbUri: string;
-  port: number;
+export interface Config {
+  apiUrl: string;
+  timeout: number;
+  retryCount: number;
 }
 
-const defaultConfig: ConfigOptions = {
-  apiKey: 'defaultApiKey',
-  dbUri: 'mongodb://localhost:27017/default',
-  port: 3000,
+const config: Config = {
+  apiUrl: 'https://api.crypto.example.com',
+  timeout: 5000,
+  retryCount: 3,
 };
 
-function loadConfig(filePath: string): ConfigOptions {
-  const fullPath = path.resolve(__dirname, filePath);
-  if (fs.existsSync(fullPath)) {
-    const fileConfig = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
-    return { ...defaultConfig, ...fileConfig };
-  }
-  return defaultConfig;
+export function getConfig(): Config {
+  return config;
 }
 
-export { loadConfig, ConfigOptions };
+export function updateConfig(newConfig: Partial<Config>): void {
+  Object.assign(config, newConfig);
+}
+
+export function validateConfig(cfg: Config): boolean {
+  return typeof cfg.apiUrl === 'string' &&
+         typeof cfg.timeout === 'number' &&
+         typeof cfg.retryCount === 'number';
+}
