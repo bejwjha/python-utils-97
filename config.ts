@@ -1,25 +1,27 @@
-export interface Config {
-  apiUrl: string;
-  timeout: number;
-  retryCount: number;
+export const API_URL = 'https://api.crypto.com';
+export const TIMEOUT = 5000;
+export const MAX_RETRIES = 3;
+
+export function getHeaders(apiKey: string): HeadersInit {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+    };
 }
 
-const config: Config = {
-  apiUrl: 'https://api.crypto.example.com',
-  timeout: 5000,
-  retryCount: 3,
+export function validateResponse(response: any): boolean {
+    return response && response.status === 200;
+}
+
+export const logError = (error: any): void => {
+    console.error('API Error:', error);
 };
 
-export function getConfig(): Config {
-  return config;
-}
-
-export function updateConfig(newConfig: Partial<Config>): void {
-  Object.assign(config, newConfig);
-}
-
-export function validateConfig(cfg: Config): boolean {
-  return typeof cfg.apiUrl === 'string' &&
-         typeof cfg.timeout === 'number' &&
-         typeof cfg.retryCount === 'number';
-}
+export const parseJson = async (response: Response): Promise<any> => {
+    try {
+        return await response.json();
+    } catch (error) {
+        logError(error);
+        throw new Error('JSON parsing error');
+    }
+};
