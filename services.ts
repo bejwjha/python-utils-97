@@ -1,47 +1,48 @@
-export interface CryptoData {
+export interface TransactionInput {
   id: string;
-  symbol: string;
-  name: string;
-  currentPrice: number;
-  marketCap: number;
-  volume24h: number;
-  priceChange24h: number;
+  amount: number;
+  recipient: string;
+  sender: string;
 }
 
-export interface AggregatedData {
-  totalMarketCap: number;
-  averagePrice: number;
-  topGainers: CryptoData[];
-}
-
-export function aggregateCryptoData(data: CryptoData[]): AggregatedData {
-  if (data.length === 0) {
-    return { totalMarketCap: 0, averagePrice: 0, topGainers: [] };
+export class CryptoProcessingService {
+  processLoop(inputs: TransactionInput[]): void {
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      if (!this.isValidInput(input)) {
+        continue;
+      }
+      this.handleTransaction(input);
+    }
   }
 
-  const totalMarketCap = data.reduce((sum, item) => sum + item.marketCap, 0);
-  const averagePrice = data.reduce((sum, item) => sum + item.currentPrice, 0) / data.length;
+  private isValidInput(input: TransactionInput): boolean {
+    if (typeof input.id !== 'string' || input.id.length === 0) {
+      return false;
+    }
+    if (typeof input.amount !== 'number' || input.amount <= 0 || input.amount > 1000000) {
+      return false;
+    }
+    if (typeof input.recipient !== 'string' || !input.recipient.startsWith('crypto:')) {
+      return false;
+    }
+    if (typeof input.sender !== 'string' || input.sender === input.recipient) {
+      return false;
+    }
+    return true;
+  }
 
-  const topGainers = [...data]
-    .sort((a, b) => b.priceChange24h - a.priceChange24h)
-    .slice(0, 3);
+  private handleTransaction(input: TransactionInput): void {
+    const hash = this.generateHash(input);
+    console.log('Validated and processing:', input.id, 'hash:', hash);
+  }
 
-  return { totalMarketCap, averagePrice, topGainers };
-}
-
-export function filterByPriceRange(data: CryptoData[], minPrice: number, maxPrice: number): CryptoData[] {
-  return data.filter(item => item.currentPrice >= minPrice && item.currentPrice <= maxPrice);
-}
-
-export function calculateMarketDominance(data: CryptoData[], totalMarketCap: number): Map<string, number> {
-  const dominance = new Map<string, number>();
-  data.forEach(item => {
-    const percent = (item.marketCap / totalMarketCap) * 100;
-    dominance.set(item.symbol, parseFloat(percent.toFixed(2)));
-  });
-  return dominance;
-}
-
-export function sortByVolume(data: CryptoData[]): CryptoData[] {
-  return [...data].sort((a, b) => b.volume24h - a.volume24h);
+  private generateHash(input: TransactionInput): string {
+    let hash = '';
+    const data = input.id + input.amount + input.recipient;
+    for (let i = 0; i < data.length; i++) {
+      hash += (data.charCodeAt(i) % 16).toString(16);
+    }
+    return hash.substring(0, 32);
+  }
 }
