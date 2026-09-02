@@ -1,55 +1,46 @@
-export interface NetworkRetryOptions {
-  maxRetries: number;
-  baseDelay: number;
-  maxDelay: number;
-  backoffFactor: number;
-  shouldRetry: (error: Error) => boolean;
-}
-
-const defaultOptions: NetworkRetryOptions = {
-  maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
-  backoffFactor: 2,
-  shouldRetry: (error: Error) => {
-    return error.message.includes('network') || error.message.includes('timeout');
-  }
+type CryptoInput = {
+  privateKey: string;
+  amount: number;
+  recipient: string;
 };
-
-export async function retryNetworkOperation<T>(
-  operation: () => Promise<T>,
-  options: Partial<NetworkRetryOptions> = {}
-): Promise<T> {
-  const opts = { ...defaultOptions, ...options };
-  let lastError: Error | undefined;
-  for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (err) {
-      lastError = err as Error;
-      if (attempt === opts.maxRetries || !opts.shouldRetry(lastError)) {
-        throw lastError;
-      }
-      const delay = Math.min(
-        opts.baseDelay * Math.pow(opts.backoffFactor, attempt),
-        opts.maxDelay
-      );
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+const isValidPrivateKey = (key: string): boolean => {
+  return key.length === 64 && /^[0-9a-fA-F]+$/.test(key);
+};
+const isValidAmount = (amount: number): boolean => {
+  return amount > 0 && amount < 1000000;
+};
+const isValidAddress = (address: string): boolean => {
+  return address.startsWith('0x') && address.length === 42;
+};
+const validateInput = (input: CryptoInput): boolean => {
+  if (!isValidPrivateKey(input.privateKey)) {
+    return false;
   }
-  throw lastError!;
-}
-
-export function createCryptoApiClient(baseUrl: string) {
-  return {
-    fetchData: async (endpoint: string) => {
-      return retryNetworkOperation(async () => {
-        const response = await fetch(`${baseUrl}/${endpoint}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
-        }
-        return response.json();
-      });
+  if (!isValidAmount(input.amount)) {
+    return false;
+  }
+  if (!isValidAddress(input.recipient)) {
+    return false;
+  }
+  return true;
+};
+const processCryptoTransaction = (input: CryptoInput): string => {
+  if (!validateInput(input)) {
+    throw new Error('Invalid input');
+  }
+  const txHash = '0x' + input.privateKey.substring(0, 10) + input.amount.toString(16);
+  return txHash;
+};
+const mainProcessingLoop = (inputs: CryptoInput[]): string[] => {
+  const results: string[] = [];
+  for (let i = 0; i < inputs.length; i++) {
+    const input = inputs[i];
+    if (!validateInput(input)) {
+      continue;
     }
-  };
-}
+    const result = processCryptoTransaction(input);
+    results.push(result);
+  }
+  return results;
+};
+export { mainProcessingLoop, validateInput, CryptoInput };
