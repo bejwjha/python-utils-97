@@ -1,51 +1,34 @@
 # python-utils-97
 
-A collection of TypeScript utilities designed to simplify common programming tasks in Python-like syntax. This project aims to provide developers with handy functions that promote clean coding and enhance productivity.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A focused TypeScript library for cryptocurrency development. It provides reliable tools for wallet operations, transaction handling, and price data retrieval across major blockchains.
 
 ## Features
 
-- **File Management**: Efficiently handle file operations like reading, writing, and deleting files with simplified methods.
-- **Data Validation**: Quickly validate inputs with pre-built functions for various data types, ensuring robustness in your applications.
-- **Asynchronous Utilities**: Leverage asynchronous programming features to handle promises and callbacks seamlessly, improving application responsiveness.
-- **Extensive Documentation**: Comprehensive and easy-to-follow documentation that makes it simple to integrate utilities into your existing projects.
+- Generate and manage HD wallets for Bitcoin, Ethereum, and Solana using BIP39 and BIP44 standards
+- Sign and verify transactions with built-in support for ECDSA and Ed25519
+- Fetch real-time and historical prices through an aggregated API client
+- Validate addresses and convert between formats with chain-specific checksums
 
 ## Installation
-
-To install the latest version of python-utils-97, use npm:
 
 ```bash
 npm install python-utils-97
 ```
 
-For Yarn users, the installation command is:
+## Usage
 
-```bash
-yarn add python-utils-97
+```ts
+import { createWallet, signMessage, fetchPrice } from 'python-utils-97';
+
+const wallet = createWallet('ethereum');
+const signature = await signMessage(wallet.privateKey, 'Verify ownership');
+
+const price = await fetchPrice('bitcoin', { currency: 'usd' });
+console.log(price);
 ```
-
-## Basic Usage Example
-
-Here’s a brief example illustrating how to use the `fileReader` utility from the library:
-
-```typescript
-import { fileReader } from 'python-utils-97';
-
-// Read a file asynchronously
-fileReader('example.txt')
-  .then(content => {
-    console.log('File content:', content);
-  })
-  .catch(error => {
-    console.error('Error reading file:', error);
-  });
-```
-
-This simple example demonstrates reading a text file asynchronously, automatically handling errors while providing the file contents.
 
 ## License
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-For detailed information about the project's license, please refer to the LICENSE file. 
-
-Contributions and feedback are welcome! Check out the issues or start a discussion if you have ideas for new utilities.
+MIT
