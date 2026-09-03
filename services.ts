@@ -1,48 +1,42 @@
-export interface TransactionInput {
-  id: string;
-  amount: number;
-  recipient: string;
-  sender: string;
-}
+import { CryptoPair, TradeResult } from './types';
 
-export class CryptoProcessingService {
-  processLoop(inputs: TransactionInput[]): void {
-    for (let i = 0; i < inputs.length; i++) {
-      const input = inputs[i];
-      if (!this.isValidInput(input)) {
-        continue;
-      }
-      this.handleTransaction(input);
-    }
+/**
+ * Orchestrates crypto exchange operations with validation
+ */
+export class ExchangeService {
+  private apiKey: string;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
   }
 
-  private isValidInput(input: TransactionInput): boolean {
-    if (typeof input.id !== 'string' || input.id.length === 0) {
-      return false;
+  /**
+   * Executes a trade for a specific pair
+   */
+  public async executeTrade(pair: CryptoPair, amount: number): Promise<TradeResult> {
+    if (amount <= 0) {
+      throw new Error('Invalid trade amount');
     }
-    if (typeof input.amount !== 'number' || input.amount <= 0 || input.amount > 1000000) {
-      return false;
+
+    const response = await fetch(`https://api.crypto.com/v1/trade`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ pair, amount }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Trade failed: ${response.statusText}`);
     }
-    if (typeof input.recipient !== 'string' || !input.recipient.startsWith('crypto:')) {
-      return false;
-    }
-    if (typeof input.sender !== 'string' || input.sender === input.recipient) {
-      return false;
-    }
-    return true;
+
+    return await response.json() as TradeResult;
   }
 
-  private handleTransaction(input: TransactionInput): void {
-    const hash = this.generateHash(input);
-    console.log('Validated and processing:', input.id, 'hash:', hash);
-  }
-
-  private generateHash(input: TransactionInput): string {
-    let hash = '';
-    const data = input.id + input.amount + input.recipient;
-    for (let i = 0; i < data.length; i++) {
-      hash += (data.charCodeAt(i) % 16).toString(16);
-    }
-    return hash.substring(0, 32);
+  /**
+   * Formats trade execution logs
+   */
+  public formatLog(result: TradeResult): string {
+    return `Executed ${result.id} at ${result.price}`;
   }
 }
