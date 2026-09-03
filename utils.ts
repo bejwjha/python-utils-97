@@ -1,39 +1,27 @@
-import * as fs from 'fs';
-import * as path from 'path';
-
-interface LoggerOptions {
-  logFile: string;
-  maxSize?: number;
-  maxFiles?: number;
+export interface RetryOptions {
+  retries?: number;
+  delay?: number;
+  backoffFactor?: number;
 }
 
-export function setupLogger(options: LoggerOptions): (message: string, level?: string) => void {
-  const { logFile, maxSize = 5 * 1024 * 1024, maxFiles = 5 } = options;
-  const logDir = path.dirname(logFile);
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
-  }
-  const rotateLogs = (): void => {
-    if (!fs.existsSync(logFile)) {
-      return;
-    }
-    const stats = fs.statSync(logFile);
-    if (stats.size <= maxSize) {
-      return;
-    }
-    for (let i = maxFiles - 1; i > 0; i--) {
-      const oldFile = `${logFile}.${i}`;
-      const newFile = `${logFile}.${i + 1}`;
-      if (fs.existsSync(oldFile)) {
-        fs.renameSync(oldFile, newFile);
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const { retries = 3, delay = 1000, backoffFactor = 2 } = options;
+  let attempt = 0;
+  let currentDelay = delay;
+
+  while (true) {
+    try {
+      return await operation();
+    } catch (error) {
+      attempt++;
+      if (attempt > retries) {
+        throw error;
       }
+      await new Promise((resolve) => setTimeout(resolve, currentDelay));
+      currentDelay *= backoffFactor;
     }
-    fs.renameSync(logFile, `${logFile}.1`);
-  };
-  return (message: string, level: string = 'INFO'): void => {
-    rotateLogs();
-    const timestamp = new Date().toISOString();
-    const logEntry = `[${timestamp}] [${level}] ${message}\n`;
-    fs.appendFileSync(logFile, logEntry);
-  };
+  }
 }
