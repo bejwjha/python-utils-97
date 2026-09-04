@@ -1,42 +1,34 @@
-import { CryptoPair, TradeResult } from './types';
-
-/**
- * Orchestrates crypto exchange operations with validation
- */
-export class ExchangeService {
-  private apiKey: string;
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  /**
-   * Executes a trade for a specific pair
-   */
-  public async executeTrade(pair: CryptoPair, amount: number): Promise<TradeResult> {
-    if (amount <= 0) {
-      throw new Error('Invalid trade amount');
-    }
-
-    const response = await fetch(`https://api.crypto.com/v1/trade`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({ pair, amount }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Trade failed: ${response.statusText}`);
-    }
-
-    return await response.json() as TradeResult;
-  }
-
-  /**
-   * Formats trade execution logs
-   */
-  public formatLog(result: TradeResult): string {
-    return `Executed ${result.id} at ${result.price}`;
-  }
+interface CryptoData {
+  symbol: string;
+  price: number;
+  timestamp: number;
 }
+
+export const formatCurrency = (amount: number, precision: number = 2): string => {
+  return amount.toFixed(precision);
+};
+
+export const calculatePercentageChange = (current: number, previous: number): number => {
+  if (previous === 0) return 0;
+  return ((current - previous) / previous) * 100;
+};
+
+export const validateCryptoPayload = (data: unknown): data is CryptoData => {
+  const d = data as CryptoData;
+  return (
+    typeof d?.symbol === 'string' &&
+    typeof d?.price === 'number' &&
+    typeof d?.timestamp === 'number'
+  );
+};
+
+export const getMarketSummary = (items: CryptoData[]): Record<string, number> => {
+  return items.reduce((acc, item) => {
+    acc[item.symbol] = item.price;
+    return acc;
+  }, {} as Record<string, number>);
+};
+
+export const aggregateVolume = (data: CryptoData[]): number => {
+  return data.reduce((sum, item) => sum + item.price, 0);
+};
