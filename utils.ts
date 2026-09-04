@@ -1,27 +1,33 @@
-export interface RetryOptions {
-  retries?: number;
-  delay?: number;
-  backoffFactor?: number;
-}
+import { createHash, randomBytes } from 'crypto';
 
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
-  const { retries = 3, delay = 1000, backoffFactor = 2 } = options;
-  let attempt = 0;
-  let currentDelay = delay;
+export const generateNonce = (length: number = 32): string => {
+  return randomBytes(length).toString('hex');
+};
 
-  while (true) {
-    try {
-      return await operation();
-    } catch (error) {
-      attempt++;
-      if (attempt > retries) {
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, currentDelay));
-      currentDelay *= backoffFactor;
-    }
+export const hashPayload = (data: Record<string, any>): string => {
+  const serialized = JSON.stringify(data, Object.keys(data).sort());
+  return createHash('sha256').update(serialized).digest('hex');
+};
+
+export const validateAddress = (address: string): boolean => {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+};
+
+export const formatAmount = (amount: bigint, decimals: number = 18): string => {
+  const divisor = BigInt(10) ** BigInt(decimals);
+  const integer = amount / divisor;
+  const fractional = amount % divisor;
+  return `${integer}.${fractional.toString().padStart(decimals, '0')}`;
+};
+
+export const delay = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const parseBigInt = (value: string | number): bigint => {
+  try {
+    return BigInt(value);
+  } catch {
+    return BigInt(0);
   }
-}
+};
