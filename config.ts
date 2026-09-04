@@ -1,27 +1,21 @@
-export const API_URL = 'https://api.crypto.com';
-export const TIMEOUT = 5000;
-export const MAX_RETRIES = 3;
-
-export function getHeaders(apiKey: string): HeadersInit {
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-    };
+export interface CryptoConfig {
+  network: 'mainnet' | 'testnet';
+  rpcEndpoint: string;
+  timeout: number;
+  retryAttempts: number;
 }
 
-export function validateResponse(response: any): boolean {
-    return response && response.status === 200;
-}
-
-export const logError = (error: any): void => {
-    console.error('API Error:', error);
+export const DEFAULT_CONFIG: CryptoConfig = {
+  network: 'mainnet',
+  rpcEndpoint: 'https://api.crypto-utils.io',
+  timeout: 5000,
+  retryAttempts: 3,
 };
 
-export const parseJson = async (response: Response): Promise<any> => {
-    try {
-        return await response.json();
-    } catch (error) {
-        logError(error);
-        throw new Error('JSON parsing error');
-    }
-};
+export const getEnvironmentConfig = (env: string = 'mainnet'): CryptoConfig => ({
+  ...DEFAULT_CONFIG,
+  network: env === 'testnet' ? 'testnet' : 'mainnet',
+  rpcEndpoint: env === 'testnet' 
+    ? 'https://testnet.crypto-utils.io' 
+    : DEFAULT_CONFIG.rpcEndpoint,
+});
