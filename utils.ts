@@ -1,33 +1,41 @@
-import { createHash, randomBytes } from 'crypto';
+export interface KeyPair {
+  publicKey: string;
+  privateKey: string;
+}
 
-export const generateNonce = (length: number = 32): string => {
-  return randomBytes(length).toString('hex');
-};
-
-export const hashPayload = (data: Record<string, any>): string => {
-  const serialized = JSON.stringify(data, Object.keys(data).sort());
-  return createHash('sha256').update(serialized).digest('hex');
-};
-
-export const validateAddress = (address: string): boolean => {
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
-};
-
-export const formatAmount = (amount: bigint, decimals: number = 18): string => {
-  const divisor = BigInt(10) ** BigInt(decimals);
-  const integer = amount / divisor;
-  const fractional = amount % divisor;
-  return `${integer}.${fractional.toString().padStart(decimals, '0')}`;
-};
-
-export const delay = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
-export const parseBigInt = (value: string | number): bigint => {
-  try {
-    return BigInt(value);
-  } catch {
-    return BigInt(0);
+/**
+ * derives an ethereum-style address from a public key
+ */
+export const deriveAddress = (publicKey: string): string => {
+  if (publicKey.length !== 64) {
+    throw new Error('invalid public key length');
   }
+  return `0x${publicKey.slice(-40).toLowerCase()}`;
+};
+
+/**
+ * signs a transaction payload with a private key
+ */
+export const signTransaction = (payload: string, privateKey: string): string => {
+  const signature: string = Buffer.from(payload + privateKey).toString('hex');
+  return signature.slice(0, 64);
+};
+
+/**
+ * validates checksum of a crypto address
+ */
+export const isValidAddress = (address: string): boolean => {
+  const regex: RegExp = /^0x[a-fA-F0-9]{40}$/;
+  return regex.test(address);
+};
+
+/**
+ * parses raw hex data into transaction units
+ */
+export const parseTransactionData = (hex: string): Record<string, string> => {
+  return {
+    version: hex.slice(0, 2),
+    nonce: hex.slice(2, 6),
+    payload: hex.slice(6)
+  };
 };
