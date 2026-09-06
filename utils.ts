@@ -1,41 +1,30 @@
-export interface KeyPair {
-  publicKey: string;
-  privateKey: string;
+export interface CryptoData {
+  symbol: string;
+  price: number;
+  timestamp: number;
 }
 
-/**
- * derives an ethereum-style address from a public key
- */
-export const deriveAddress = (publicKey: string): string => {
-  if (publicKey.length !== 64) {
-    throw new Error('invalid public key length');
+export const sanitizePrice = (value: unknown): number => {
+  const parsed = typeof value === 'string' ? parseFloat(value) : value;
+  if (typeof parsed !== 'number' || isNaN(parsed)) {
+    throw new Error('invalid numeric value');
   }
-  return `0x${publicKey.slice(-40).toLowerCase()}`;
+  return Math.max(0, parsed);
 };
 
-/**
- * signs a transaction payload with a private key
- */
-export const signTransaction = (payload: string, privateKey: string): string => {
-  const signature: string = Buffer.from(payload + privateKey).toString('hex');
-  return signature.slice(0, 64);
+export const formatPair = (base: string, quote: string): string => {
+  return `${base.toUpperCase()}/${quote.toUpperCase()}`;
 };
 
-/**
- * validates checksum of a crypto address
- */
-export const isValidAddress = (address: string): boolean => {
-  const regex: RegExp = /^0x[a-fA-F0-9]{40}$/;
-  return regex.test(address);
-};
-
-/**
- * parses raw hex data into transaction units
- */
-export const parseTransactionData = (hex: string): Record<string, string> => {
+export const parseCryptoResponse = (raw: Record<string, any>): CryptoData => {
   return {
-    version: hex.slice(0, 2),
-    nonce: hex.slice(2, 6),
-    payload: hex.slice(6)
+    symbol: String(raw.s || 'UNKNOWN'),
+    price: sanitizePrice(raw.p),
+    timestamp: Date.now()
   };
+};
+
+export const calculatePercentageChange = (curr: number, prev: number): number => {
+  if (prev === 0) return 0;
+  return ((curr - prev) / prev) * 100;
 };
