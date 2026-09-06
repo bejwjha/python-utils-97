@@ -1,26 +1,46 @@
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from "crypto";
 
-export const generateNonce = (length: number = 32): string => {
-  return randomBytes(length).toString('hex');
-};
+export interface CryptoTask {
+  id: string;
+  payload: string;
+}
 
-export const sha256 = (data: string): string => {
-  return createHash('sha256').update(data).digest('hex');
-};
+export class BatchHasherService {
+  private cache: Map<string, string> = new Map();
+  private maxCacheSize: number;
 
-export const signPayload = (payload: object, secret: string): string => {
-  const message = JSON.stringify(payload);
-  return createHash('sha256').update(message + secret).digest('hex');
-};
+  constructor(maxCacheSize = 10000) {
+    this.maxCacheSize = maxCacheSize;
+  }
 
-export const formatCurrency = (amount: number, precision: number = 8): string => {
-  return amount.toFixed(precision);
-};
+  public hashPayload(payload: string): string {
+    const cached = this.cache.get(payload);
+    if (cached) {
+      return cached;
+    }
 
-export const sleep = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
+    const hash = createHash("sha256").update(payload).digest("hex");
+    if (this.cache.size >= this.maxCacheSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
+    }
 
-export const validateAddress = (address: string, pattern: RegExp): boolean => {
-  return pattern.test(address);
-};
+    this.cache.set(payload, hash);
+    return hash;
+  }
+
+  public processBatch(tasks: CryptoTask[]): Map<string, string> {
+    const results = new Map<string, string>();
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+      results.set(task.id, this.hashPayload(task.payload));
+    }
+    return results;
+  }
+
+  public clear(): void {
+    this.cache.clear();
+  }
+}
