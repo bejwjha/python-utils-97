@@ -1,45 +1,46 @@
-/**
- * Converts a Uint8Array buffer into a hexadecimal string.
- *
- * @param bytes - The byte array to convert.
- * @returns The hex representation of the bytes.
- */
-export function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+const byteToHex: string[] = [];
+for (let i = 0; i < 256; i++) {
+  byteToHex.push(i.toString(16).padStart(2, '0'));
 }
 
-/**
- * Converts a hexadecimal string into a Uint8Array.
- *
- * @param hex - The hex string to convert.
- * @returns The corresponding byte array.
- * @throws {Error} If the hex string has an invalid length or characters.
- */
-export function hexToBytes(hex: string): Uint8Array {
-  if (hex.length % 2 !== 0) {
-    throw new Error("Invalid hex string length");
-  }
-  const bytes = new Uint8Array(hex.length / 2);
+export function bytesToHex(bytes: Uint8Array): string {
+  const hex: string[] = new Array(bytes.length);
   for (let i = 0; i < bytes.length; i++) {
-    const byte = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-    if (isNaN(byte)) {
-      throw new Error("Invalid character in hex string");
+    hex[i] = byteToHex[bytes[i]];
+  }
+  return hex.join('');
+}
+
+const hexToByteMap: Record<string, number> = {};
+for (let i = 0; i < 256; i++) {
+  hexToByteMap[byteToHex[i]] = i;
+}
+
+export function hexToBytes(hex: string): Uint8Array {
+  const normalized = hex.startsWith('0x') ? hex.slice(2) : hex;
+  if (normalized.length % 2 !== 0) {
+    throw new Error('Invalid hex string length');
+  }
+  const length = normalized.length / 2;
+  const bytes = new Uint8Array(length);
+  for (let i = 0; i < length; i++) {
+    const byteHex = normalized.substring(i * 2, i * 2 + 2).toLowerCase();
+    const byte = hexToByteMap[byteHex];
+    if (byte === undefined) {
+      throw new Error('Invalid hex character');
     }
     bytes[i] = byte;
   }
   return bytes;
 }
 
-/**
- * Generates a SHA-256 hash from a UTF-8 string using the Web Crypto API.
- *
- * @param message - The input string to hash.
- * @returns A promise resolving to the SHA-256 hex hash.
- */
-export async function sha256(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-  return bytesToHex(new Uint8Array(hashBuffer));
+export function constantTimeCompare(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
 }
