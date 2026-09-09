@@ -1,30 +1,26 @@
-import { createHash } from 'crypto';
+import { createHash, createHmac, timingSafeEqual, randomBytes, pbkdf2Sync } from 'crypto';
 
-export const hexToUint8Array = (hex: string): Uint8Array => {
-  return new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
-};
-
-export const uint8ArrayToHex = (buffer: Uint8Array): string => {
-  return Array.from(buffer)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-};
-
-export const sha256 = (data: string | Uint8Array): string => {
+export function sha256(data: string | Buffer): string {
   return createHash('sha256').update(data).digest('hex');
-};
+}
 
-export const sleep = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
+export function hmacSha256(key: string | Buffer, data: string | Buffer): string {
+  return createHmac('sha256', key).update(data).digest('hex');
+}
 
-export const validateAddress = (address: string, prefix: string): boolean => {
-  const regex = new RegExp(`^${prefix}[a-zA-Z0-9]{32,44}$`);
-  return regex.test(address);
-};
+export function generateSalt(length: number = 16): string {
+  return randomBytes(length).toString('hex');
+}
 
-export const chunkArray = <T>(array: T[], size: number): T[][] => {
-  return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-    array.slice(i * size, i * size + size)
-  );
-};
+export function pbkdf2(password: string, salt: string, iterations = 100000, keylen = 64): string {
+  return pbkdf2Sync(password, salt, iterations, keylen, 'sha256').toString('hex');
+}
+
+export function secureCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
