@@ -1,46 +1,36 @@
-import { createHash } from "crypto";
+import { CryptoConfig, WalletAccount } from './types';
 
-export interface CryptoTask {
-  id: string;
-  payload: string;
-}
+export class CryptoService {
+  private readonly config: CryptoConfig;
 
-export class BatchHasherService {
-  private cache: Map<string, string> = new Map();
-  private maxCacheSize: number;
-
-  constructor(maxCacheSize = 10000) {
-    this.maxCacheSize = maxCacheSize;
+  constructor(config: CryptoConfig) {
+    this.config = config;
   }
 
-  public hashPayload(payload: string): string {
-    const cached = this.cache.get(payload);
-    if (cached) {
-      return cached;
+  public validateAddress(address: string): boolean {
+    if (!address || typeof address !== 'string') {
+      return false;
     }
-
-    const hash = createHash("sha256").update(payload).digest("hex");
-    if (this.cache.size >= this.maxCacheSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey) {
-        this.cache.delete(firstKey);
-      }
-    }
-
-    this.cache.set(payload, hash);
-    return hash;
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
   }
 
-  public processBatch(tasks: CryptoTask[]): Map<string, string> {
-    const results = new Map<string, string>();
-    for (let i = 0; i < tasks.length; i++) {
-      const task = tasks[i];
-      results.set(task.id, this.hashPayload(task.payload));
-    }
-    return results;
+  public formatBalance(rawBalance: bigint, decimals: number = 18): string {
+    const divisor = BigInt(10 ** decimals);
+    const integerPart = rawBalance / divisor;
+    const remainder = rawBalance % divisor;
+    const fraction = remainder.toString().padStart(decimals, '0').slice(0, 4);
+    return `${integerPart}.${fraction}`;
   }
 
-  public clear(): void {
-    this.cache.clear();
+  public async fetchAccountDetails(address: string): Promise<WalletAccount> {
+    if (!this.validateAddress(address)) {
+      throw new Error(`Invalid wallet address: ${address}`);
+    }
+    return {
+      address,
+      network: this.config.network,
+      isActive: true,
+      lastSyncTimestamp: Date.now()
+    };
   }
 }
