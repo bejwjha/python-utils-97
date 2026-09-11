@@ -1,30 +1,29 @@
-import { createHmac } from 'crypto';
-
-export type HashAlgorithm = 'sha256' | 'sha512';
-
-export interface CryptoConfig {
-  secret: string;
-  algorithm: HashAlgorithm;
+interface CryptoPayload {
+  id: string;
+  nonce: number;
+  signature: string;
 }
 
-export const generateSignature = (payload: string, config: CryptoConfig): string => {
-  return createHmac(config.algorithm, config.secret)
-    .update(payload)
-    .digest('hex');
+export const validatePayload = (data: unknown): CryptoPayload => {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('invalid payload structure');
+  }
+
+  const p = data as Record<string, unknown>;
+  if (typeof p.id !== 'string' || typeof p.nonce !== 'number' || typeof p.signature !== 'string') {
+    throw new Error('missing or malformed fields');
+  }
+
+  return p as CryptoPayload;
 };
 
-export const validateTimestamp = (timestamp: number, drift: number = 5000): boolean => {
-  return Math.abs(Date.now() - timestamp) <= drift;
-};
-
-export const formatCurrency = (amount: number, precision: number = 8): string => {
-  return amount.toFixed(precision);
-};
-
-export const parseJsonSafe = <T>(data: string): T | null => {
-  try {
-    return JSON.parse(data) as T;
-  } catch {
-    return null;
+export const processStream = (inputs: unknown[]): void => {
+  for (const input of inputs) {
+    try {
+      const valid = validatePayload(input);
+      console.log(`processing: ${valid.id}`);
+    } catch (e) {
+      console.error(`skipping invalid packet: ${(e as Error).message}`);
+    }
   }
 };
