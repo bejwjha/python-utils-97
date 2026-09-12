@@ -1,21 +1,43 @@
 export interface CryptoConfig {
   network: 'mainnet' | 'testnet';
-  rpcEndpoint: string;
-  timeout: number;
+  rpcUrl: string;
+  timeoutMs: number;
   retryAttempts: number;
+  maxGasPriceGwei: number;
 }
 
-export const DEFAULT_CONFIG: CryptoConfig = {
+const DEFAULT_CONFIG: CryptoConfig = {
   network: 'mainnet',
-  rpcEndpoint: 'https://api.crypto-utils.io',
-  timeout: 5000,
+  rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/demo',
+  timeoutMs: 5000,
   retryAttempts: 3,
+  maxGasPriceGwei: 100,
 };
 
-export const getEnvironmentConfig = (env: string = 'mainnet'): CryptoConfig => ({
-  ...DEFAULT_CONFIG,
-  network: env === 'testnet' ? 'testnet' : 'mainnet',
-  rpcEndpoint: env === 'testnet' 
-    ? 'https://testnet.crypto-utils.io' 
-    : DEFAULT_CONFIG.rpcEndpoint,
-});
+export class ConfigLoader {
+  private currentConfig: CryptoConfig;
+
+  constructor(initialConfig?: Partial<CryptoConfig>) {
+    this.currentConfig = { ...DEFAULT_CONFIG, ...initialConfig };
+  }
+
+  public get<K extends keyof CryptoConfig>(key: K): CryptoConfig[K] {
+    return this.currentConfig[key];
+  }
+
+  public set(overrides: Partial<CryptoConfig>): CryptoConfig {
+    this.currentConfig = { ...this.currentConfig, ...overrides };
+    return { ...this.currentConfig };
+  }
+
+  public getAll(): Readonly<CryptoConfig> {
+    return Object.freeze({ ...this.currentConfig });
+  }
+
+  public reset(): CryptoConfig {
+    this.currentConfig = { ...DEFAULT_CONFIG };
+    return { ...this.currentConfig };
+  }
+}
+
+export const defaultConfig = DEFAULT_CONFIG;
