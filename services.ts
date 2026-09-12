@@ -1,36 +1,56 @@
-import { CryptoConfig, WalletAccount } from './types';
+import { createHmac } from 'crypto';
 
+export interface OrderPayload {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  price: number;
+  quantity: number;
+  timestamp: number;
+}
+
+export interface SignedOrder extends OrderPayload {
+  signature: string;
+}
+
+/**
+ * Service providing crypto signing and validation utilities.
+ */
 export class CryptoService {
-  private readonly config: CryptoConfig;
+  private readonly secretKey: string;
 
-  constructor(config: CryptoConfig) {
-    this.config = config;
+  /**
+   * @param secretKey - The secret API key used for HMAC signature generation.
+   */
+  constructor(secretKey: string) {
+    this.secretKey = secretKey;
   }
 
-  public validateAddress(address: string): boolean {
-    if (!address || typeof address !== 'string') {
-      return false;
-    }
+  /**
+   * Generates an HMAC SHA256 signature for raw data.
+   * @param data - String payload to sign.
+   * @returns Hex-encoded HMAC signature.
+   */
+  public generateSignature(data: string): string {
+    return createHmac('sha256', this.secretKey).update(data).digest('hex');
+  }
+
+  /**
+   * Signs an order payload by serializing its fields.
+   * @param payload - Order parameters to sign.
+   * @returns Signed order object containing signature.
+   */
+  public signOrder(payload: OrderPayload): SignedOrder {
+    const serialized = `${payload.symbol}:${payload.side}:${payload.price}:${payload.quantity}:${payload.timestamp}`;
+    const signature = this.generateSignature(serialized);
+    return { ...payload, signature };
+  }
+
+  /**
+   * Validates whether a string is a valid EVM address.
+   * @param address - Wallet address string.
+   * @returns True if valid 20-byte hex EVM address.
+   */
+  public isValidEvmAddress(address: string): boolean {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
-  }
-
-  public formatBalance(rawBalance: bigint, decimals: number = 18): string {
-    const divisor = BigInt(10 ** decimals);
-    const integerPart = rawBalance / divisor;
-    const remainder = rawBalance % divisor;
-    const fraction = remainder.toString().padStart(decimals, '0').slice(0, 4);
-    return `${integerPart}.${fraction}`;
-  }
-
-  public async fetchAccountDetails(address: string): Promise<WalletAccount> {
-    if (!this.validateAddress(address)) {
-      throw new Error(`Invalid wallet address: ${address}`);
-    }
-    return {
-      address,
-      network: this.config.network,
-      isActive: true,
-      lastSyncTimestamp: Date.now()
-    };
   }
 }
